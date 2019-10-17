@@ -1,4 +1,5 @@
-# OTF Regenerate Thumbnails
+# OTF Regenerate Thumbnails 
+utf-8 characters in filename fixed
 
 #### Regenerates thumbnails on the fly for WordPress.
 
