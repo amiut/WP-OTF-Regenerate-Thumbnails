@@ -19,6 +19,8 @@ Author URI: http://gambit.ph
  */
 if ( ! function_exists( 'gambit_otf_regen_thumbs_media_downsize' ) ) {
 	
+	add_filter( 'image_downsize', 'gambit_otf_regen_thumbs_media_downsize', 10, 3 );
+	
 	/**
 	 * The downsizer. This only does something if the existing image size doesn't exist yet.
 	 *
@@ -121,44 +123,18 @@ if ( ! function_exists( 'gambit_otf_regen_thumbs_media_downsize' ) ) {
 		// If the size given is a custom array size
 		} else if ( is_array( $size ) ) {
 			$imagePath = get_attached_file( $id );
-
-			$crop = array_key_exists(2, $size) ? $size[2] : true;
-			$new_width = $size[0];
-			$new_height = $size[1];
-
-			// If crop is false, calculate new image dimensions
-			if (!$crop) {
-				if ( class_exists( 'Jetpack' ) && Jetpack::is_module_active( 'photon' ) ) {
-					add_filter( 'jetpack_photon_override_image_downsize', '__return_true' );
-					$trueData = wp_get_attachment_image_src($id, 'large');
-					remove_filter( 'jetpack_photon_override_image_downsize', '__return_true' );
-				}
-				else {
-					$trueData = wp_get_attachment_image_src($id, 'large');
-				}
-
-				if ($trueData[1] > $trueData[2]) {
-					// Width > height
-					$ratio = $trueData[1] / $size[0];
-					$new_height = round($trueData[2] / $ratio);
-					$new_width = $size[0];
-				}
-				else {
-					// Height > width
-					$ratio = $trueData[2] / $size[1];
-					$new_height = $size[1];
-					$new_width = round($trueData[1] / $ratio);
-				}
-			}
-
+	
 			// This would be the path of our resized image if the dimensions existed
 			$imageExt = pathinfo( $imagePath, PATHINFO_EXTENSION );
-			$imagePath = preg_replace( '/^(.*)\.' . $imageExt . '$/', sprintf( '$1-%sx%s.%s', $new_width, $new_height, $imageExt ) , $imagePath );
+			$fileName = pathinfo( $imagePath, PATHINFO_FILENAME );
+			$imagePath = str_replace($fileName, $fileName . "-{$size[0]}x{$size[1]}", $imagePath);
+			// $imagePath = preg_replace( '/^(.*)\.' . $imageExt . '$/', sprintf( '$1-%sx%s.%s', $size[0], $size[1], $imageExt ) , $imagePath );
+
 			$att_url = wp_get_attachment_url( $id );
 		
 			// If it already exists, serve it
 			if ( file_exists( $imagePath ) ) {
-				return array( dirname( $att_url ) . '/' . basename( $imagePath ), $new_width, $new_height, $crop );
+				return array( dirname( $att_url ) . '/' . wp_basename( $imagePath ), $size[0], $size[1], true );
 			}
 
 			// If not, resize the image...
@@ -166,7 +142,7 @@ if ( ! function_exists( 'gambit_otf_regen_thumbs_media_downsize' ) ) {
 				get_attached_file( $id ),
 				$size[0],
 				$size[1],
-				$crop
+				true
 			);
 			
 			// Get attachment meta so we can add new size
@@ -182,10 +158,9 @@ if ( ! function_exists( 'gambit_otf_regen_thumbs_media_downsize' ) ) {
 			}
 		
 			// Then serve it
-			return array( dirname( $att_url ) . '/' . $resized['file'], $resized['width'], $resized['height'], $crop );
+			return array( dirname( $att_url ) . '/' . $resized['file'], $resized['width'], $resized['height'], true );
 		}
 	
 		return false;
 	}
-	add_filter( 'image_downsize', 'gambit_otf_regen_thumbs_media_downsize', 10, 3 );
 }
